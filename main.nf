@@ -63,16 +63,17 @@ Channel
 
 // Define Process
 process subset_vcfs {
-    tag "$sample_name"
+    tag "$file_name"
     label 'low_memory'
-    publishDir "${params.outdir}", mode: 'copy' // in results by default
+    publishDir "${params.outdir}/subsetted-vcfs/", mode: 'copy' // in results by default
 
     input:
     set val(file_name), file(vcf_WGS), file(vcf_WGS_idx) from ch_input
     each file(region_file) from ch_region_file // file is going to be lost after firts iteration.
     
     output:
-    file "*_exons_plus1k*" into ch_out
+    set val(file_name), file("*_exons_plus1k*") into ch_out_vcfs
+    set val(file_name), file("*_exons_plus1k*csi") optional true into ch_out_indices
     
     script:
     if (params.generate_vcf_index == true)
@@ -89,3 +90,34 @@ process subset_vcfs {
     rm $vcf_WGS $vcf_WGS_idx
     """
   }
+
+process get_s3_filename {
+    tag "${vcf}"
+    echo true
+
+    input:
+    set val(file_name), file(vcf) from ch_out_vcfs
+
+    output:
+    file "${file_name}.csv" into ch_all_files_list
+
+    """
+    echo $vcf |  sed 's/[][]//g' |   sed 's/[[:space:]]//g' >  ${file_name}.csv
+    cat ${file_name}.csv
+    """
+}
+
+process create_all_files_s3_list {
+    tag "${vcf}"
+    publishDir "${params.outdir}/", mode: 'copy' // in results by default
+
+    input:
+    file(design_rows) from ch_all_files_list.collect()
+    echo true
+
+    output:
+    file 's3_uris_all_subsetted_vcf_files.csv' into ch_results
+    """
+    for row in $design_rows; do cat \$row >> s3_uris_all_subsetted_vcf_files.csv; done
+    """
+}
