@@ -105,7 +105,7 @@ process get_s3_filename {
     echo $vcf |  sed 's/[][]//g' |   sed 's/[[:space:]]//g' >  ${file_name}.csv
     cat ${file_name}.csv
     pwd
-    find / jobs
+    find / -iname 615d63bb87389401cf6eef81
     """
 }
 
