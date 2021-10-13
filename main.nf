@@ -119,5 +119,6 @@ process create_all_files_s3_list {
     file 's3_uris_all_subsetted_vcf_files.csv' into ch_results
     """
     for row in $design_rows; do cat \$row >> s3_uris_all_subsetted_vcf_files.csv; done
+    echo pwd
     """
 }
